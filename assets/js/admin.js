@@ -42,31 +42,61 @@
     } catch (e) { /* quota */ }
   }
 
+  /* ---------------- хеширование пароля (не зависит от crypto.subtle) ---------------- */
+  function strHash(str) {
+    var h1 = 0x811c9dc5, h2 = 0x1000193, i, ch;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 ^= ch; h1 = Math.imul(h1, 0x01000193);
+      h2 ^= ch; h2 = Math.imul(h2, 0x85EBCA6B) ^ h1;
+    }
+    return (h1 >>> 0).toString(16) + '-' + (h2 >>> 0).toString(16);
+  }
+  function passHash(pass) { return strHash('ch2026|' + pass); }
+
   /* ---------------- авторизация ---------------- */
-  function login(pass) {
-    var saved = localStorage.getItem(LS.hash);
-    return sha256(pass).then(function (h) {
-      if (saved && saved === h) return true;
-      if (!saved && pass === DEFAULT_PASS) return true;
-      return false;
-    });
+  function getStored() {
+    try { return localStorage.getItem(LS.hash); } catch (e) { return null; }
+  }
+  function setStored(v) {
+    try { localStorage.setItem(LS.hash, v); return true; } catch (e) { return false; }
+  }
+  // Проверка: мгновенно, если это новый (синхронный) хеш; для старых sha256 — асинхронно при наличии crypto.subtle
+  function checkPass(pass) {
+    var saved = getStored();
+    if (!saved) return pass === DEFAULT_PASS;
+    if (saved.indexOf('-') > 0) return saved === passHash(pass);
+    // старый формат — sha256 (64 hex)
+    if (saved.length === 64 && window.crypto && crypto.subtle) {
+      return sha256(pass).then(function (h) { return h === saved; });
+    }
+    return false;
   }
 
   async function initAuth() {
-    $('#loginForm').addEventListener('submit', async function (e) {
+    $('#loginForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var btn = $('#loginForm button[type=submit]');
+      var errEl = $('#loginErr');
       btn.disabled = true;
+      if (errEl) errEl.style.display = 'none';
       try {
-        var ok = await login($('#loginPass').value);
-        if (!ok) { toast('Неверный пароль', true); btn.disabled = false; return; }
-        showApp();
+        Promise.resolve(checkPass($('#loginPass').value)).then(function (ok) {
+          btn.disabled = false;
+          if (ok) { showApp(); return; }
+          if (errEl) { errEl.style.display = 'block'; }
+          toast('Неверный пароль. По умолчанию: ' + DEFAULT_PASS, true);
+        }, function () {
+          btn.disabled = false;
+          if (errEl) errEl.style.display = 'block';
+          toast('Не удалось проверить пароль — обнови страницу с Ctrl+F5', true);
+        });
       } catch (err) {
-        toast('Ошибка: ' + err.message, true);
         btn.disabled = false;
+        toast('Ошибка: ' + err.message, true);
       }
     });
-    if (sessionStorage.getItem('charovnica_admin_ok')) showApp();
+    try { if (sessionStorage.getItem('charovnica_admin_ok')) showApp(); } catch (e) { /* noop */ }
   }
 
   function showApp() {
@@ -288,7 +318,8 @@
       '<label><span>Новый пароль админа (мин. 8 символов)</span><input type="password" id="newPass" autocomplete="new-password"></label>' +
       '<label><span>Повтори пароль</span><input type="password" id="newPass2" autocomplete="new-password"></label>' +
       '</div>' +
-      '<div class="mini" style="grid-column:1/-1"><button class="btn btn-p btn-sm" id="changePass">Сменить пароль</button></div>' +
+      '<div class="mini" style="grid-column:1/-1"><button class="btn btn-p btn-sm" id="changePass">Сменить пароль</button> ' +
+      '<button class="btn btn-g btn-sm" id="resetPass" title="Вернёт стандартный пароль charovnica2026">Забыли пароль? Сбросить</button></div>' +
       '</fieldset>' +
       '</div>';
   }
@@ -298,6 +329,12 @@
       if (e.target.id === 'addHour') { state.contacts.hours.push({ days: '', time: '' }); persist(); renderSettingsView(); }
       if (e.target.id === 'addSocial') { state.contacts.socials.push({ id: 'wa', label: 'WhatsApp', url: 'https://wa.me/' }); persist(); renderSettingsView(); }
       if (e.target.id === 'changePass') { changePassword(); }
+      if (e.target.id === 'resetPass') {
+        if (confirm('Сбросить пароль админа? Он станет по умолчанию: ' + DEFAULT_PASS)) {
+          localStorage.removeItem(LS.hash);
+          toast('Пароль сброшен: ' + DEFAULT_PASS);
+        }
+      }
     });
     root.addEventListener('input', function (e) {
       var ck = e.target.getAttribute('data-c');
@@ -319,8 +356,7 @@
     async function changePassword() {
       var p1 = $('#newPass').value, p2 = $('#newPass2').value;
       if (p1.length < 8 || p1 !== p2) { toast('Пароль короткий или не совпадает', true); return; }
-      var h = await sha256(p1);
-      localStorage.setItem(LS.hash, h);
+      if (!setStored(passHash(p1))) { toast('Браузер заблокировал сохранение — разреши localStorage для этого сайта', true, 6000); return; }
       toast('Пароль обновлён! Запомни его.');
       $('#newPass').value = ''; $('#newPass2').value = '';
     }
@@ -554,6 +590,8 @@
 
   /* ---------------- запуск ---------------- */
   function init() {
+    if (window.__chAdminInit) return;   // защита от двойного запуска
+    window.__chAdminInit = true;
     $$('.tab-btn').forEach(function (b) {
       b.addEventListener('click', function () { pickTab(b.getAttribute('data-view')); });
     });
