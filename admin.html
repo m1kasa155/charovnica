@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка — ЧароВница</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+:root{
+  --ink:#0E0B09;--ink2:#16110D;--panel:#1C1610;--panel2:#241C14;
+  --cream:#EDE5D4;--bone:#B3A78F;--dim:#8C806B;--brass:#C9A24B;--soft:#E3C97F;--ember:#E05B2B;
+  --line:rgba(237,229,212,.13);--line2:rgba(237,229,212,.24);
+  --good:#7FD99A;--bad:#E98A8A;
+  --f-d:'Unbounded',system-ui,sans-serif;--f-b:'Manrope',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark}
+body{background:var(--ink);color:var(--cream);font-family:var(--f-b);font-size:15px;line-height:1.55}
+h1,h2,h3{font-family:var(--f-d)}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font:inherit;color:var(--cream);background:var(--ink);border:1.5px solid var(--line2);border-radius:10px;padding:10px 12px;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brass)}
+textarea{resize:vertical;min-height:70px}
+label{display:grid;gap:6px;font-size:12.5px;font-weight:700;color:var(--bone);letter-spacing:.03em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;transition:all .15s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:linear-gradient(135deg,var(--soft),var(--brass));color:#171005}
+.btn-p:hover:not(:disabled){transform:translateY(-1px)}
+.btn-g{border:1.5px solid var(--line2);color:var(--cream)}
+.btn-g:hover:not(:disabled){border-color:var(--brass);color:var(--soft)}
+.btn-danger{background:rgba(233,138,138,.15);color:#F2A0A0;border:1px solid rgba(233,138,138,.35)}
+.btn-danger:hover{background:rgba(233,138,138,.26)}
+.btn-sm{padding:7px 13px;font-size:12.5px;border-radius:9px}
+.icon{width:16px;height:16px;flex:none}
+
+/* login */
+.login-wrap{min-height:100vh;display:grid;place-content:center;padding:20px}
+.login-card{width:min(430px,100%);background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:20px;padding:38px 34px;text-align:center}
+.login-card h1{font-size:21px;margin:14px 0 4px}
+.login-card p{color:var(--dim);font-size:13.5px;margin-bottom:22px}
+.login-card form{display:grid;gap:12px}
+.login-card input{text-align:center;font-size:16px;letter-spacing:.2em}
+
+/* layout */
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:var(--ink2);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:6px}
+.sidebar .s-logo{font-family:var(--f-d);font-weight:800;font-size:16px;letter-spacing:.05em;display:flex;align-items:center;gap:9px;padding:4px 8px 18px}
+.sidebar .s-logo svg{width:26px;height:26px;color:var(--brass)}
+.tab-btn{display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border-radius:10px;color:var(--bone);font-weight:600;font-size:14px;transition:all .12s}
+.tab-btn:hover{background:rgba(237,229,212,.05);color:var(--cream)}
+.tab-btn.active{background:rgba(201,162,75,.13);color:var(--soft)}
+.sidebar .spacer{flex:1}
+.side-status{font-size:12px;color:var(--dim);padding:8px;border-top:1px solid var(--line)}
+
+.main{min-width:0}
+.topbar{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(14,11,9,.85);backdrop-filter:blur(10px);z-index:10}
+.topbar h2{font-size:18px;font-weight:600}
+.topbar-actions{display:flex;gap:9px;flex-wrap:wrap}
+
+.view{padding:26px 28px 60px;max-width:1100px}
+.banner{background:rgba(201,162,75,.09);border:1px dashed rgba(201,162,75,.4);border-radius:14px;padding:14px 18px;font-size:13.5px;color:var(--bone);margin-bottom:24px}
+.banner strong{color:var(--soft)}
+
+.items{display:grid;gap:14px}
+.item{background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.item-head{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px}
+.item-head .t{font-weight:800;font-size:15.5px}
+.item-head .sub{font-size:12.5px;color:var(--dim)}
+.item-actions{display:flex;gap:8px}
+.item-form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.item-form .full{grid-column:1/-1}
+.item-form .mini{grid-column:1/-1;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding-top:4px}
+
+.add-btn{align-self:start;margin-top:4px}
+.empty{color:var(--dim);font-size:14px;padding:18px 0}
+
+/* настройки */
+.settings{display:grid;gap:20px}
+.settings fieldset{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:linear-gradient(180deg,var(--panel),var(--ink2));display:grid;gap:14px}
+.settings legend{font-family:var(--f-d);font-size:13px;font-weight:600;color:var(--soft);padding:0 8px;letter-spacing:.06em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.hint{font-size:12px;color:var(--dim)}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line2);padding:13px 22px;border-radius:12px;font-weight:600;font-size:14px;z-index:99;opacity:0;transition:all .25s;max-width:min(430px,90vw);text-align:center}
+.toast.show{opacity:1}
+.toast.err{border-color:rgba(233,138,138,.5);color:#F2A0A0}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{flex-direction:row;flex-wrap:wrap;align-items:center;border-right:0;border-bottom:1px solid var(--line);padding:12px}
+  .sidebar .s-logo{display:none}
+  .spacer{display:none}
+  .item-form,.grid2,.grid3{grid-template-columns:1fr}
+  .view{padding:20px 16px 60px}
+  .topbar{padding:14px 16px;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <svg viewBox="0 0 64 64" style="width:56px;height:56px;color:var(--brass)" aria-hidden="true">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="2"/>
+      <g stroke="#EDE5D4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M18 44 L38 33 M47 24 L38 33 M38 33 C40 25 44 18 49 16 C48 24 44 29 38 33 Z M38 33 L29 42 C28 47 26 50 24 52 C27 50 30 49 33 47"/>
+      </g>
+    </svg>
+    <h1>Админка «ЧароВница»</h1>
+    <p>Введи пароль. По умолчанию: <strong style="color:var(--soft)">charovnica2026</strong> — смени его в «Настройках».</p>
+    <form id="loginForm">
+      <input type="password" id="loginPass" placeholder="Пароль" autocomplete="current-password" required>
+      <button class="btn btn-p" type="submit">Войти</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside class="sidebar">
+    <div class="s-logo">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="2"/><g stroke="#EDE5D4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M18 44 L38 33 M47 24 L38 33 M38 33 C40 25 44 18 49 16 C48 24 44 29 38 33 Z M38 33 L29 42 C28 47 26 50 24 52 C27 50 30 49 33 47"/></g></svg>
+      ЧароВница
+    </div>
+    <button class="tab-btn active" data-view="services">✂️ Услуги и цены</button>
+    <button class="tab-btn" data-view="team">👥 Мастера</button>
+    <button class="tab-btn" data-view="gallery">🖼 Галерея</button>
+    <button class="tab-btn" data-view="reviews">⭐ Отзывы</button>
+    <button class="tab-btn" data-view="offers">🏷 Акции</button>
+    <button class="tab-btn" data-view="settings">⚙️ Настройки</button>
+    <div class="spacer"></div>
+    <div class="s-status" id="sStatus">Загрузка…</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="viewTitle">Услуги и цены</h2>
+      <div class="topbar-actions">
+        <button class="btn btn-g btn-sm" id="sameViewBtn">Открыть сайт</button>
+        <button class="btn btn-g btn-sm" id="resetLocalBtn">Сбросить правки</button>
+        <button class="btn btn-g btn-sm" id="dlJsonBtn">content.json</button>
+        <button class="btn btn-p btn-sm" id="zipBtn">Собрать обновление .zip</button>
+      </div>
+    </div>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="assets/js/admin.js" defer></script>
+</body>
+</html>
